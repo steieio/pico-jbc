@@ -96,6 +96,10 @@ int main() {
     stdio_init_all();
     jbi_init(TRUE);
 
+#ifdef CYCLOMOD
+    clock_gpio_init(PIN_CLKOUT, CLOCKS_CLK_GPOUT0_CTRL_AUXSRC_VALUE_XOSC_CLKSRC, 1);
+#endif
+
 #ifdef WAIT_FOR_CONSOLE
   // wait for something on STDIN before scanning to make sure the terminal is open
     while (!tud_cdc_connected()) {
@@ -105,10 +109,12 @@ int main() {
 
     printf("\nJAM Byte Code Player\n");
     printf("JUF2 header address:  0x%08X\n", (uint32_t)juf2);
-	printf(" Tag: 0x%08X\n Ver: 0x%08X\n Len: 0x%08X\n Adr: 0x%08X\n", juf2->tag, juf2->version, juf2->length, juf2->location);
+	  printf(" Tag: 0x%08X\n Ver: 0x%08X\n Len: 0x%08X\n Adr: 0x%08X\n", juf2->tag, juf2->version, juf2->length, juf2->location);
 
 #ifdef RUN_DEFAULT_ACTION
     jbi_play(juf2, juf2->action);
+#else
+    jbi_play(juf2, NULL);
 #endif
 
     char cmd[COMMAND_BUFFER_LENGTH +1];
@@ -122,9 +128,4 @@ int main() {
         sleep_ms(1);
     }
 
-
-    while (true) {
-        printf("Hello, world!\n");
-        sleep_ms(1000);
-    }
 }

@@ -3,6 +3,7 @@
 /* Module:           jbipico.h                                               */
 /*                                                                           */
 /*                   Copyright 2025 Altera Corporation                       */
+/*                   Copyright 2025 Greg Steiert                             */
 /*                                                                           */
 /* SPDX-License-Identifier: MIT-0                                            */
 /*                                                                           */
@@ -30,7 +31,6 @@
 #ifndef INC_JBIPICO_H
 #define INC_JBIPICO_H
 
-// #include "jbiexprt.h"
 #include <unistd.h>
 
 typedef int BOOL;
@@ -45,11 +45,12 @@ typedef unsigned long DWORD;
 
 #define JUF2_ADDRESS   0x10F00000
 
-#define PIN_TCK 6
-#define PIN_TMS 5
-#define PIN_TDI 7
-#define PIN_TDO 4
-#define PIN_LED 28
+#define PIN_TCK     6
+#define PIN_TMS     5
+#define PIN_TDI     7
+#define PIN_TDO     4
+#define PIN_LED     28
+#define PIN_CLKOUT  21
 
 #else
 
