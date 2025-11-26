@@ -1,8 +1,9 @@
 /*****************************************************************************/
 /*                                                                           */
-/* Module:           jbistub.c                                               */
+/* Module:           jbipico.c                                               */
 /*                                                                           */
 /*                   Copyright 2025 Altera Corporation                       */
+/*                   Copyright 2025 Greg Steiert                             */
 /*                                                                           */
 /* SPDX-License-Identifier: MIT-0                                            */
 /*                                                                           */
@@ -21,29 +22,13 @@
 /* OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR  */
 /* THE USE OR OTHER DEALINGS IN THE SOFTWARE.                                */
 /*                                                                           */
-/* Description:      Jam STAPL ByteCode Player main source file              */
+/* Description:      Jam STAPL ByteCode Player pico port source file         */
 /*                                                                           */
-/*                   Supports Intel ByteBlaster hardware download cable      */
-/*                   on Windows 95 and Windows NT operating systems.         */
-/*                   (A device driver is required for Windows NT.)           */
+/*                   Supports Raspberry Pi Pico and Pico 2                   */
 /*                                                                           */
-/*                   Also supports BitBlaster hardware download cable on     */
-/*                   Windows 95, Windows NT, and UNIX platforms.             */
-/*                                                                           */
-/* Revisions:        1.1 fixed control port initialization for ByteBlaster   */
-/*                   2.0 added support for STAPL bytecode format, added code */
-/*                       to get printer port address from Windows registry   */
-/*                   2.1 improved messages, fixed delay-calibration bug in   */
-/*                       16-bit DOS port, added support for "alternative     */
-/*                       cable X", added option to control whether to reset  */
-/*                       the TAP after execution, moved porting macros into  */
-/*                       jbiport.h                                           */
-/*                   2.2 added support for static memory                     */
-/*                       fixed /W4 warnings                                  */
+/* Revisions:        1.0 Raspberry Pi Pico port initial release              */
 /*                                                                           */
 /*****************************************************************************/
-
-
 
 #include "altera-jbc/code/jbiport.h"
 
