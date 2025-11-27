@@ -313,7 +313,6 @@ int jbi_play(jbc_uf2_hdr_t *juh, char *action) {
 	int exit_code = 0;
 	int format_version = 0;
 
-//	char *action = juh->action;
 	int action_count = 0;
 	char **init_list = NULL;
 
@@ -321,7 +320,6 @@ int jbi_play(jbc_uf2_hdr_t *juh, char *action) {
     char *workspace = NULL;
 	char *exit_string = NULL;
 	int reset_jtag = 1;
-//	int execute_program = 1;
 	int procedure_count = 0;
 	int index = 0;
 	char *action_name = NULL;
@@ -427,7 +425,7 @@ int jbi_play(jbc_uf2_hdr_t *juh, char *action) {
 			if (action != NULL)
 			{
 				gpio_put(PIN_LED, 0);
-				printf("Executing %s\n", juh->action);
+				printf("Executing %s\n", action);
 				printf("Filename: %s\n", juh->filename);
 				printf("Description: %s\n", juh->description);
 				/*

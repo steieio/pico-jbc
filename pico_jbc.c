@@ -9,12 +9,13 @@
 #include "pico/stdlib.h"
 #include "pico/binary_info.h"
 #include "pico/bootrom.h"
+#include "hardware/clocks.h"
 #include "tusb.h"
 
 #include "jbipico.h"
 
-#define WAIT_FOR_CONSOLE
-// #define RUN_DEFAULT_ACTION
+//#define WAIT_FOR_CONSOLE
+#define RUN_DEFAULT_ACTION
 
 #define COMMAND_BUFFER_LENGTH  127
 
@@ -54,6 +55,11 @@ void process_command(char *buf) {
       printf("Information\n");
       jbi_play(juf2, "PROGRAM");
       break;
+    case 'U':
+    case 'u':
+      printf("Read Usercode\n");
+      jbi_play(juf2, "READ_USERCODE");
+      break;
     case 'V':
     case 'v':
       printf("Verify\n");
@@ -77,17 +83,21 @@ void process_command(char *buf) {
     default:
       printf("Unknown command:  %s\n", command);
   }
+#ifdef CYCLOMOD
+  printf("\nCycloMod");
+#endif
   printf("\nJBC Player Commands:\n");
-  printf("  A/a Action:  perform default action\n");
+  printf("  A/a Action:       perform default action\n");
   printf("  B/b Blank Check:  check if device is blank\n");
-  printf("  C/c Configure:  configure device\n");
-  printf("  D/d Details:  display JBC details\n");
-  printf("  E/e Erase:  erase device\n");
-  printf("  H/h Help:  print command help\n");
-  printf("  I/i IDCODE:  get device IDCODE\n");
-  printf("  P/p Program:  program device\n");
-  printf("  R/r Reset:  reset to bootloader\n");
-  printf("  V/v Verify:  verify device\n");
+  printf("  C/c Configure:    configure device\n");
+  printf("  D/d Details:      display JBC details\n");
+  printf("  E/e Erase:        erase device\n");
+  printf("  H/h Help:         print command help\n");
+  printf("  I/i IDCODE:       get device IDCODE\n");
+  printf("  P/p Program:      program device\n");
+  printf("  R/r Reset:        reset to bootloader\n");
+  printf("  U/u Usercode:     read USERCODE\n");
+  printf("  V/v Verify:       verify device\n");
 }
 
 int main() {
@@ -116,6 +126,8 @@ int main() {
 #else
     jbi_play(juf2, NULL);
 #endif
+
+    printf("\nPins:  TCK %d, TMS, %d, TDI %d, TDO %d, LED %d\n", PIN_TCK, PIN_TMS, PIN_TDI, PIN_TDO, PIN_LED);
 
     char cmd[COMMAND_BUFFER_LENGTH +1];
     cmd[0] = 0;

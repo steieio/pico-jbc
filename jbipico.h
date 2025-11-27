@@ -40,6 +40,7 @@ typedef unsigned long DWORD;
 #define TRUE 1
 #define FALSE 0
 
+#define CYCLOMOD
 
 #ifdef CYCLOMOD
 
