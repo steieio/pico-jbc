@@ -1,45 +1,48 @@
 # pico-jbc
 Altera JBC implementation for Raspberry Pi Pico boards
 
-This is currently working with Pico and Pico2
-Merged .uf2 files are presently only working with Pico
-You currently need to generate a stand alone .uf2 file for Pico 2
+This is currently working with Pico, Pico2 and CycloMod
+Merged .uf2 files are presently only working with RP2040 and RP2350
 
-## Pico 
 
-* Build the project to create pico_jbc.uf2
-* Add jbc file to uf2 file
-* drag-n-drop file onto RP2040 drive
-
-```
-python2 util/jbcuf2.py -u build/pico_jbc.uf2 -b 0x10020000 -j path-to-image.jbc -d "description" -a "PROGRAM" -o output.uf2
-```
-
-## Pico 2
+## Pico / Pico 2
 
 * Build the project to create pico_jbc.uf2
-* Generate separate jbc uf2 file
-* drag-n-drop both files onto RP2350 drive
+* Generate uncompressed JBC file
+* Add jbc file to uf2 file (0x10020000 base address)
+* drag-n-drop combined .uf2 file onto RP drive
 
 ```
-python2 util/jbc2u.py -f 0xe48bff57 -b 0x10020000 -j path-to-image.jbc -d "description" -a "PROGRAM" -o output.uf2
+python3 util/jbcuf2.py -u build/pico_jbc.uf2 -b 0x10020000 -j path-to-image.jbc -d "description" -a "PROGRAM" -o output.uf2
 ```
 
 ## CycloMod
 
 * Build the project to create pico_jbc.uf2
-* Generate separate jbc uf2 file
-* drag-n-drop both files onto RP2350 drive
+* Generate uncompressed JBC file
+* Add jbc file to uf2 file (0x10F00000 base address)
+* drag-n-drop combined .uf2 file onto RP drive
 
 ```
-python2 util/jbc2u.py -f 0xe48bff57 -b 0x10F00000 -j path-to-image.jbc -d "description" -a "CONFIGURE" -o output.uf2
+python3 util/jbcuf2.py -u build/pico_jbc.uf2 -b 0x10F00000 -j path-to-image.jbc -d "description" -a "CONFIGURE" -o output.uf2
+```
+
+## Loading JBC file separately
+
+Use jbc2u.py to generate a stand alone .uf2 file to load the JBC file into flash
+
+* Use family -f 0xe48bff56 for RP2040 
+* Use family -f 0xe48bff57 for RP2350 
+
+```
+python3 util/jbc2u.py -f 0xe48bff57 -b 0x10F00000 -j path-to-image.jbc -d "description" -a "CONFIGURE" -o output.uf2
 ```
 
 ## JBC to UF2
 
 ### -f Family
 
-jbcuf2.py will automatically use the family from the provided RP2040 .uf2 file.
+jbcuf2.py will automatically use the family from the provided .uf2 file.
 Jbc2u.py requires manual setting:
  * RP2040:  0xe48bff56
  * RP2350:  0xe48bff57

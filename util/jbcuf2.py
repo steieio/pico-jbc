@@ -16,6 +16,7 @@ UF2_MAGIC_END    = 0x0AB16F30 # Ditto
 
 PICO_RP2040      = 0xe48bff56 # Pico RP2040 Family Code
 PICO_RP2350      = 0xe48bff57 # RP2350 Absolute Address Family Code
+PICO_RP2350_A_NS = 0xe48bff5b # RP2350 Arm NS family address (highest)
 
 jbchdraddr = 0x10020000
 jbcspeed = 1000000
@@ -23,131 +24,14 @@ familyid = 0x0
 jbcaction = b""
 jbcfilename = b""
 jbcdescription = b""
+outp = []
 
+def convert_jbc(jbc_content, startblock, numblocks):
+    global jbchdraddr, familyid, jbcaction, jbcdescription, jbcfilename, jbcspeed, outp
 
-def convert_to_uf2(uf2_content, jbc_content):
-    global jbchdraddr, familyid, jbcaction, jbcdescription, jbcfilename, jbcspeed
-
-    datapadding = b""
-    while len(datapadding) < 512 - 256 - 32 - 4:
-        datapadding += b"\x00\x00\x00\x00"
-
-    uf2_blocks_in = len(uf2_content) // 512
-    if (uf2_blocks_in % 16) == 0:
-        uf2_blocks_out = uf2_blocks_in
-    else:
-        uf2_blocks_out = uf2_blocks_in + 16 - (uf2_blocks_in % 16)
+    blockno = startblock
+# Calculate number of JBC blocks
     jbc_blocks = ((len(jbc_content) + 255) // 256)
-    numblocks = uf2_blocks_out + jbc_blocks + 1
-
-    outp = []
-
-    curraddr = None
-    currfamilyid = None
-    families_found = {}
-    prev_flag = None
-    all_flags_same = True
-    uf2_high_addr = 0
-
-    for blockno in range(uf2_blocks_in):
-        ptr = blockno * 512
-        block = uf2_content[ptr:ptr + 512]
-        hdi = struct.unpack(b"<IIIIIIII", block[0:32])
-        if hdi[0] != UF2_MAGIC_START0 or hdi[1] != UF2_MAGIC_START1:
-            print("Skipping block at " + ptr + "; bad magic")
-            continue
-        if hdi[2] & 1:
-            # NO-flash flag set; skip block
-            continue
-        datalen = hdi[4]
-        if datalen > 476:
-            assert False, "Invalid UF2 data size at " + ptr
-        if datalen < 256:
-            print("Short block at block #%d\n", hdi[5])
-
-# Capture first family code
-        if (hdi[2] & 0x2000) and (currfamilyid == None):
-            currfamilyid = hdi[7]
-
-# Test family code is RP2040
-        if (currfamilyid == PICO_RP2040):
-# Modify headers if RP2040
-            if (hdi[7] == PICO_RP2040):
-                hdo = struct.pack(b"<IIIIIIII", hdi[0], hdi[1], hdi[2], hdi[3], hdi[4], hdi[5], numblocks, hdi[7])
-                outp.append(hdo)
-                outp.append(block[32:512])
-# Family code is not allowed to change from RP2040
-            else:
-                assert False, "Mixed family types with RP2040 not allowed"
-        else:
-# Not allowed to mix RP2350 and RP2040
-            if (hdi[7] == PICO_RP2040):
-                assert False, "Mixed family types with RP2040 not allowed"
-# No need to change headers for RP2350        
-            currfamilyid = hdi[7]
-            outp.append(block)
-
-
-        newaddr = hdi[3]
-        if curraddr == None or ((hdi[2] & 0x2000) and hdi[7] != currfamilyid):
-            currfamilyid = hdi[7]
-            curraddr = newaddr
-
-        curraddr = newaddr + datalen
-        if hdi[2] & 0x2000:
-            if hdi[7] in families_found.keys():
-                if families_found[hdi[7]] > newaddr:
-                    families_found[hdi[7]] = newaddr
-            else:
-                families_found[hdi[7]] = newaddr
-
-        if prev_flag == None:
-            prev_flag = hdi[2]
-        if prev_flag != hdi[2]:
-            all_flags_same = False
-        
-        if (hdi[3]+hdi[4]-1) > uf2_high_addr:
-            uf2_high_addr = hdi[3]+hdi[4]-1
-
-
-    print("--- UF2 File Header Info ---")
-    print("Highest address written:  0x{:08x}".format(uf2_high_addr))
-
-    for family_hex in families_found.keys():
-        print("Found Family ID 0x{:08x}".format(family_hex))
-        print("Target Address is 0x{:08x}".format(families_found[family_hex]))
-    if all_flags_same:
-        print("All block flag values consistent, 0x{:04x}".format(hdi[2]))
-    else:
-        print("Flags were not all the same")
-    print("----------------------------")
-
-# For RP2040
-    if (currfamilyid == PICO_RP2040):
-        familyid = PICO_RP2040
-# Flash sector erase size for pico board is 4096.  Need to pad or writing will stop
-# TBD enter dummy data, don't reuse last buffer
-        blockno = uf2_blocks_in
-        lastaddr = hdi[3]
-        print("Last Address (pre padding):  0x{:04x}".format(lastaddr))
-# Init dummy chunks for padding
-        chunk = b"\x00"
-        while len(chunk) < 256:
-            chunk += b"\x00"
-# Add padding blocks
-        while (blockno < uf2_blocks_out):
-            lastaddr += 256
-            hdo = struct.pack(b"<IIIIIIII", hdi[0], hdi[1], hdi[2], lastaddr, 256, blockno, numblocks, hdi[7])
-            block = hdo + chunk + datapadding + struct.pack(b"<I", UF2_MAGIC_END)
-            assert len(block) == 512
-            outp.append(block)
-            blockno += 1
-        print("Last Address (post padding): 0x{:04x}".format(lastaddr))
-# For RP2350
-    else:
-        familyid = PICO_RP2350
-        blockno = 0
-        numblocks = jbc_blocks + 1
 
 # Create JUF2 Header Block
     chunk = struct.pack(b"<IIIIII16s32s128s", 0x3246554A, 0, 
@@ -158,9 +42,9 @@ def convert_to_uf2(uf2_content, jbc_content):
     hdo = struct.pack(b"<IIIIIIII",
         UF2_MAGIC_START0, UF2_MAGIC_START1,
         flags, jbchdraddr, 256, blockno, numblocks, familyid)
-    while len(chunk) < 256:
+    while len(chunk) < 512 - 32 - 4:
         chunk += b"\x00"
-    block = hdo + chunk + datapadding + struct.pack(b"<I", UF2_MAGIC_END)
+    block = hdo + chunk + struct.pack(b"<I", UF2_MAGIC_END)
     assert len(block) == 512
     outp.append(block)
 
@@ -172,13 +56,86 @@ def convert_to_uf2(uf2_content, jbc_content):
         hdo = struct.pack(b"<IIIIIIII",
             UF2_MAGIC_START0, UF2_MAGIC_START1,
             flags, (ptr + jbchdraddr + 256), 256, blockno, numblocks, familyid)
-        while len(chunk) < 256:
+        while len(chunk) < 512 - 32 - 4:
             chunk += b"\x00"
-        block = hdo + chunk + datapadding + struct.pack(b"<I", UF2_MAGIC_END)
+        block = hdo + chunk + struct.pack(b"<I", UF2_MAGIC_END)
         assert len(block) == 512
         outp.append(block)
 
-    return b"".join(outp)
+
+
+def convert_to_uf2(uf2_content, jbc_content):
+    global jbchdraddr, familyid, jbcaction, jbcdescription, jbcfilename, jbcspeed, outp
+
+# Calculate number of JBC blocks
+    jbc_blocks = ((len(jbc_content) + 255) // 256)
+
+# read first header of UF2 file
+    hdi = struct.unpack(b"<IIIIIIII", uf2_content[0:32])
+
+    if hdi[0] != UF2_MAGIC_START0 or hdi[1] != UF2_MAGIC_START1:
+        assert False, "Invalid UF2 file"
+    else:
+        if (hdi[2] & 0x2000):
+# For RP2040, the firmware comes first and is padded to flash page size, then JBC data
+            if (hdi[7] == PICO_RP2040):
+                familyid = PICO_RP2040
+                uf2_blocks_in = len(uf2_content) // 512
+                if (uf2_blocks_in % 16) == 0:
+                    uf2_blocks_out = uf2_blocks_in
+                else:
+                    uf2_blocks_out = uf2_blocks_in + 16 - (uf2_blocks_in % 16)
+                numblocks = uf2_blocks_out + jbc_blocks + 1
+                for blockno in range(uf2_blocks_in):
+                    ptr = blockno * 512
+                    block = uf2_content[ptr:ptr + 512]
+                    hdi = struct.unpack(b"<IIIIIIII", block[0:32])
+                    if (hdi[2] & 0x2000) and (hdi[7] != PICO_RP2040):
+                        assert False, "Family ID not allowed to change with RP2040"
+                    hdo = struct.pack(b"<IIIIIIII", hdi[0], hdi[1], hdi[2], hdi[3], hdi[4], hdi[5], numblocks, hdi[7])
+                    outp.append(hdo)
+                    outp.append(block[32:512])
+# Flash sector erase size for pico board is 4096.  Need to pad or writing will stop
+                blockno = uf2_blocks_in
+                lastaddr = hdi[3]
+                print("Last Address (pre padding):  0x{:04x}".format(lastaddr))
+# Init dummy chunks for padding
+                chunk = b"\x00"
+                while len(chunk) < 512 - 32 - 4:
+                    chunk += b"\x00"
+# Add padding blocks
+                while (blockno < uf2_blocks_out):
+                    lastaddr += 256
+                    hdo = struct.pack(b"<IIIIIIII", hdi[0], hdi[1], hdi[2], lastaddr, 256, blockno, numblocks, hdi[7])
+                    block = hdo + chunk + struct.pack(b"<I", UF2_MAGIC_END)
+                    assert len(block) == 512
+                    outp.append(block)
+                    blockno += 1
+                print("Last Address (post padding): 0x{:04x}".format(lastaddr))
+                convert_jbc(jbc_content, blockno, numblocks)
+                return b"".join(outp)
+# For RP2350, JBC data comes first, then firmware blocks unmodified
+            elif hdi[7] > PICO_RP2040 and hdi[7] <= PICO_RP2350_A_NS:
+                familyid = PICO_RP2350
+                convert_jbc(jbc_content, 0, (jbc_blocks+1))
+                uf2_blocks_in = len(uf2_content) // 512
+                for blockno in range(uf2_blocks_in):
+                    ptr = blockno * 512
+                    block = uf2_content[ptr:ptr + 512]
+# A dummy write is added to 0xe48bff57 for errata E10, JBC data replaces dummy data
+                    if blockno == 0:
+                        hdi = struct.unpack(b"<IIIIIIII", block[0:32])
+                        if (hdi[2] & 0x2000) and hdi[5] == 0 and hdi[6] == 2 and hdi[7] == PICO_RP2350:
+                            print("Skipping E10 errata packet\n")
+                        else:
+                            outp.append(block)
+                    else:
+                        outp.append(block)
+                return b"".join(outp)
+# Other Family IDs not supported
+            else:
+                assert False, "Unrecognized Family ID"
+
 
 def write_file(name, buf):
     with open(name, "wb") as f:
